@@ -1,6 +1,6 @@
 import 'customer_screen.dart';
 import 'package:flutter/material.dart';
-import 'product_screen.dart';
+import 'Product_screen.dart';
 import 'billing_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
