@@ -111,20 +111,38 @@ class _BillingScreenState extends State<BillingScreen> {
       return;
     }
 
-    calculateTotal();
+    final rate =
+        double.tryParse(
+          selectedProduct!["sellingPrice"].toString(),
+        ) ??
+            0;
+
+    final total = quantity * rate;
 
     await DatabaseHelper.instance.insertBill({
       "customerName":
       selectedCustomer!["customerName"].toString(),
-      "billDate": DateTime.now().toIso8601String(),
-      "totalAmount": totalAmount,
+
+      "productName":
+      selectedProduct!["productName"].toString(),
+
+      "quantity": quantity,
+
+      "rate": rate,
+
+      "billDate":
+      DateTime.now().toIso8601String(),
+
+      "totalAmount": total,
     });
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Bill Generated Successfully"),
+        content: Text(
+          "Bill Generated Successfully",
+        ),
       ),
     );
 

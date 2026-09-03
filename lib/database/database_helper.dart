@@ -92,13 +92,27 @@ class DatabaseHelper {
       ) async {
     if (oldVersion < 2) {
       await db.execute('''
-        CREATE TABLE bills(
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          customerName TEXT NOT NULL,
-          billDate TEXT NOT NULL,
-          totalAmount REAL NOT NULL
-        )
-      ''');
+      CREATE TABLE bills(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customerName TEXT NOT NULL,
+        billDate TEXT NOT NULL,
+        totalAmount REAL NOT NULL
+      )
+    ''');
+    }
+
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE bills ADD COLUMN productName TEXT NOT NULL DEFAULT ""',
+      );
+
+      await db.execute(
+        'ALTER TABLE bills ADD COLUMN quantity REAL NOT NULL DEFAULT 0',
+      );
+
+      await db.execute(
+        'ALTER TABLE bills ADD COLUMN rate REAL NOT NULL DEFAULT 0',
+      );
     }
   }
 
