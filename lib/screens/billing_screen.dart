@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../database/database_helper.dart';
 
 class BillingScreen extends StatefulWidget {
   const BillingScreen({super.key});
@@ -8,51 +9,103 @@ class BillingScreen extends StatefulWidget {
 }
 
 class _BillingScreenState extends State<BillingScreen> {
-  String? selectedCustomer;
-  String? selectedProduct;
+  List<Map<String, dynamic>> customers = [];
+  List<Map<String, dynamic>> products = [];
+
+  int? selectedCustomerId;
+  int? selectedProductId;
 
   final quantityController = TextEditingController();
-  final rateController = TextEditingController();
 
   double totalAmount = 0;
 
-  final List<String> customers = [
-    "Hotel Taj",
-    "Hotel Blue Star",
-    "Shree Restaurant",
-  ];
-
-  final List<String> products = [
-    "Cow Milk",
-    "Buffalo Milk",
-    "Curd",
-    "Paneer",
-  ];
-
   @override
-  void dispose() {
-    quantityController.dispose();
-    rateController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    loadCustomers();
+    loadProducts();
+  }
+
+  Future<void> loadCustomers() async {
+    final data = await DatabaseHelper.instance.getCustomers();
+
+    if (!mounted) return;
+
+    setState(() {
+      customers = data;
+    });
+  }
+
+  Future<void> loadProducts() async {
+    final data = await DatabaseHelper.instance.getProducts();
+
+    if (!mounted) return;
+
+    setState(() {
+      products = data;
+    });
+  }
+
+  Map<String, dynamic>? get selectedProduct {
+    if (selectedProductId == null) return null;
+
+    try {
+      return products.firstWhere(
+            (product) => product["id"] == selectedProductId,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic>? get selectedCustomer {
+    if (selectedCustomerId == null) return null;
+
+    try {
+      return customers.firstWhere(
+            (customer) => customer["id"] == selectedCustomerId,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   void calculateTotal() {
-    final quantity = double.tryParse(quantityController.text) ?? 0;
-    final rate = double.tryParse(rateController.text) ?? 0;
+    final quantity =
+        double.tryParse(quantityController.text.trim()) ?? 0;
+
+    final rate =
+        double.tryParse(
+          selectedProduct?["sellingPrice"].toString() ?? "",
+        ) ??
+            0;
 
     setState(() {
       totalAmount = quantity * rate;
     });
   }
 
-  void generateBill() {
+  Future<void> generateBill() async {
     if (selectedCustomer == null ||
         selectedProduct == null ||
-        quantityController.text.trim().isEmpty ||
-        rateController.text.trim().isEmpty) {
+        quantityController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please fill all fields"),
+          content: Text(
+            "Please select customer, product and quantity",
+          ),
+        ),
+      );
+      return;
+    }
+
+    final quantity =
+    double.tryParse(quantityController.text.trim());
+
+    if (quantity == null || quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter a valid quantity"),
         ),
       );
       return;
@@ -60,11 +113,27 @@ class _BillingScreenState extends State<BillingScreen> {
 
     calculateTotal();
 
+    await DatabaseHelper.instance.insertBill({
+      "customerName":
+      selectedCustomer!["customerName"].toString(),
+      "billDate": DateTime.now().toIso8601String(),
+      "totalAmount": totalAmount,
+    });
+
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Bill Generated Successfully"),
       ),
     );
+
+    setState(() {
+      selectedCustomerId = null;
+      selectedProductId = null;
+      quantityController.clear();
+      totalAmount = 0;
+    });
   }
 
   InputDecoration inputDecoration(
@@ -78,6 +147,12 @@ class _BillingScreenState extends State<BillingScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    quantityController.dispose();
+    super.dispose();
   }
 
   @override
@@ -102,21 +177,26 @@ class _BillingScreenState extends State<BillingScreen> {
 
           const SizedBox(height: 15),
 
-          DropdownButtonFormField<String>(
-            initialValue: selectedCustomer,
+          DropdownButtonFormField<int>(
+            initialValue: selectedCustomerId,
+
             decoration: inputDecoration(
               "Select Customer",
               Icons.person,
             ),
+
             items: customers.map((customer) {
-              return DropdownMenuItem(
-                value: customer,
-                child: Text(customer),
+              return DropdownMenuItem<int>(
+                value: customer["id"] as int,
+                child: Text(
+                  customer["customerName"].toString(),
+                ),
               );
             }).toList(),
+
             onChanged: (value) {
               setState(() {
-                selectedCustomer = value;
+                selectedCustomerId = value;
               });
             },
           ),
@@ -133,22 +213,29 @@ class _BillingScreenState extends State<BillingScreen> {
 
           const SizedBox(height: 15),
 
-          DropdownButtonFormField<String>(
-            initialValue: selectedProduct,
+          DropdownButtonFormField<int>(
+            initialValue: selectedProductId,
+
             decoration: inputDecoration(
               "Select Product",
               Icons.local_drink,
             ),
+
             items: products.map((product) {
-              return DropdownMenuItem(
-                value: product,
-                child: Text(product),
+              return DropdownMenuItem<int>(
+                value: product["id"] as int,
+                child: Text(
+                  product["productName"].toString(),
+                ),
               );
             }).toList(),
+
             onChanged: (value) {
               setState(() {
-                selectedProduct = value;
+                selectedProductId = value;
               });
+
+              calculateTotal();
             },
           ),
 
@@ -156,8 +243,14 @@ class _BillingScreenState extends State<BillingScreen> {
 
           TextField(
             controller: quantityController,
-            keyboardType: TextInputType.number,
-            onChanged: (_) => calculateTotal(),
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
+
+            onChanged: (_) {
+              calculateTotal();
+            },
+
             decoration: inputDecoration(
               "Quantity",
               Icons.scale,
@@ -166,25 +259,48 @@ class _BillingScreenState extends State<BillingScreen> {
 
           const SizedBox(height: 15),
 
-          TextField(
-            controller: rateController,
-            keyboardType: TextInputType.number,
-            onChanged: (_) => calculateTotal(),
-            decoration: inputDecoration(
-              "Rate (₹)",
-              Icons.currency_rupee,
-            ),
-          ),
+          if (selectedProduct != null)
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
 
-          const SizedBox(height: 25),
+                child: Row(
+                  mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
+
+                  children: [
+                    const Text(
+                      "Rate",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    Text(
+                      "₹${selectedProduct!["sellingPrice"]}/${selectedProduct!["unit"]}",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 15),
 
           Card(
             elevation: 3,
             child: Padding(
               padding: const EdgeInsets.all(16),
+
               child: Row(
                 mainAxisAlignment:
                 MainAxisAlignment.spaceBetween,
+
                 children: [
                   const Text(
                     "Total Amount",
@@ -193,6 +309,7 @@ class _BillingScreenState extends State<BillingScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   Text(
                     "₹${totalAmount.toStringAsFixed(2)}",
                     style: const TextStyle(
@@ -209,9 +326,14 @@ class _BillingScreenState extends State<BillingScreen> {
 
           SizedBox(
             height: 55,
+
             child: ElevatedButton.icon(
               onPressed: generateBill,
-              icon: const Icon(Icons.receipt_long),
+
+              icon: const Icon(
+                Icons.receipt_long,
+              ),
+
               label: const Text(
                 "GENERATE BILL",
                 style: TextStyle(
