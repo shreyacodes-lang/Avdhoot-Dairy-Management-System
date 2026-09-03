@@ -1,6 +1,7 @@
-import 'customer_screen.dart';
 import 'package:flutter/material.dart';
-import 'Product_screen.dart';
+
+import 'customer_screen.dart';
+import 'product_screen.dart';
 import 'billing_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -13,13 +14,18 @@ class DashboardScreen extends StatelessWidget {
         title: const Text("Avdhoot Dairy Dashboard"),
         backgroundColor: Colors.blue,
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
+
         child: GridView.count(
           crossAxisCount: 2,
           crossAxisSpacing: 15,
           mainAxisSpacing: 15,
+
           children: [
+
+            // Customers
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -29,8 +35,13 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 );
               },
-              child: dashboardCard(Icons.people, "Customers"),
+              child: dashboardCard(
+                Icons.people,
+                "Customers",
+              ),
             ),
+
+            // Products
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -40,29 +51,75 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 );
               },
-              child: dashboardCard(Icons.local_drink, "Products"),
+              child: dashboardCard(
+                Icons.local_drink,
+                "Products",
+              ),
             ),
-            dashboardCard(Icons.receipt_long, "Billing"),
-            dashboardCard(Icons.payment, "Payments"),
-            dashboardCard(Icons.history, "Bill History"),
-            dashboardCard(Icons.bar_chart, "Reports"),
+
+            // Billing
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BillingScreen(),
+                  ),
+                );
+              },
+              child: dashboardCard(
+                Icons.receipt_long,
+                "Billing",
+              ),
+            ),
+
+            // Payments
+            dashboardCard(
+              Icons.payment,
+              "Payments",
+            ),
+
+            // Bill History
+            dashboardCard(
+              Icons.history,
+              "Bill History",
+            ),
+
+            // Reports
+            dashboardCard(
+              Icons.bar_chart,
+              "Reports",
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget dashboardCard(IconData icon, String title) {
+  Widget dashboardCard(
+      IconData icon,
+      String title,
+      ) {
     return Card(
       elevation: 5,
+
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
       ),
+
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+
         children: [
-          Icon(icon, size: 50, color: Colors.blue),
+
+          Icon(
+            icon,
+            size: 50,
+            color: Colors.blue,
+          ),
+
           const SizedBox(height: 10),
+
           Text(
             title,
             style: const TextStyle(
